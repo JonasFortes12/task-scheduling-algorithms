@@ -20,6 +20,11 @@ button{
     font-weight: 500;
 }
 
+button:hover{
+    cursor: pointer;
+    background-color: rgba(13, 110, 253, .25);
+}
+
 .camposTarefa{
     display: flex;
     flex-direction: row;
