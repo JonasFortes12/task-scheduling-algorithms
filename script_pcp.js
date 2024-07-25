@@ -171,15 +171,8 @@ function simulatePCP(tasks, totalTime) {
             if (currentTask.remainingComputationTime === 0) {
                 currentTask.nextReleaseTime += currentTask.period;
                 currentTask.remainingComputationTime = currentTask.computationTime;
-                // Remove tarefa da lista de bloqueios se necessário
-                const index = blockedTasks.indexOf(currentTask.name);
-                if (index > -1) {
-                    blockedTasks.splice(index, 1);
-                }
-            } else {
-                // Adiciona a tarefa à lista de bloqueios
-                blockedTasks.push(currentTask.name);
-            }
+            } 
+            
         } else {
             // Se não houver tarefa para executar, adicionar "sem tarefa" ao escalonamento
             schedule.push({ time, task: "Sem Tarefa" });
