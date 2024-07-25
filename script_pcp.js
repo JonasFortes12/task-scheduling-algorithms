@@ -98,6 +98,79 @@ function salvarTarefas() {
 }
 
 
+// ----------------------------- PCP -----------------------------
+
+class Task {
+    constructor(name, period, computationTime, priority, blockingTime) {
+        this.name = name;
+        this.period = period;
+        this.computationTime = computationTime;
+        this.priority = priority;
+        this.blockingTime = blockingTime;
+        this.nextReleaseTime = 0;
+        this.remainingComputationTime = computationTime;
+        this.inheritedPriority = priority;
+    }
+}
+
+// Função para simular a execução das tarefas
+function simulatePIP(tasks, totalTime) {
+    let time = 0;
+    let schedule = [];
+    let blockedTasks = [];
+
+    while (time < totalTime) {
+        // Atualiza as prioridades herdadas
+        tasks.forEach(task => {
+            task.inheritedPriority = task.priority;
+        });
+        
+        // Processa bloqueios
+        blockedTasks.forEach(blockedTask => {
+            const blockingTask = tasks.find(t => t.name === blockedTask);
+            if (blockingTask) {
+                blockingTask.inheritedPriority = Math.max(blockingTask.inheritedPriority, tasks.find(t => t.name === blockedTask).priority);
+            }
+        });
+
+        // Ordena tarefas pela prioridade herdada (menor valor tem maior prioridade)
+        tasks.sort((a, b) => a.inheritedPriority - b.inheritedPriority);
+
+        // Encontra a tarefa que será executada
+        let currentTask = null;
+        for (let task of tasks) {
+            if (task.remainingComputationTime > 0 && task.nextReleaseTime <= time) {
+                currentTask = task;
+                break;
+            }
+        }
+
+        // Executa a tarefa
+        if (currentTask) {
+            schedule.push({ time, task: currentTask.name });
+            currentTask.remainingComputationTime--;
+
+            if (currentTask.remainingComputationTime === 0) {
+                currentTask.nextReleaseTime += currentTask.period;
+                currentTask.remainingComputationTime = currentTask.computationTime;
+                // Remove tarefa da lista de bloqueios se necessário
+                const index = blockedTasks.indexOf(currentTask.name);
+                if (index > -1) {
+                    blockedTasks.splice(index, 1);
+                }
+            } else {
+                // Adiciona a tarefa à lista de bloqueios
+                blockedTasks.push(currentTask.name);
+            }
+        } else {
+            schedule.push({ time, task: "Idle" });
+        }
+
+        time++;
+    }
+
+    return schedule;
+}
 
 
 function calcularOrdemExec() {
@@ -113,22 +186,53 @@ function calcularOrdemExec() {
 
     for (var i = 0; i < rows.length; i++) {
         var row = rows[i];
-        var tarefa = {
-            nome: row.cells[0].innerText,
-            periodo: parseFloat(row.cells[1].innerText),
-            tempo: parseFloat(row.cells[2].innerText),
-            prioridade: parseInt(row.cells[3].innerText),
-            tempoBloqueio: parseFloat(row.cells[4].innerText)
-        };
+        
+        const tarefa = new Task(
+            row.cells[0].innerText, 
+            parseFloat(row.cells[1].innerText), 
+            parseFloat(row.cells[2].innerText), 
+            parseInt(row.cells[3].innerText), 
+            parseFloat(row.cells[4].innerText));
+
         tarefas.push(tarefa);
     }
 
-    // Ordenar tarefas por prioridade (menor valor tem maior prioridade)
-    tarefas.sort((a, b) => a.prioridade - b.prioridade);
 
-    var ordemExecucao = [];
 
-    // em breve a implementação pcp
+    const totalTime = 20;
+    const ordem_exec = simulatePIP(tarefas, totalTime);
 
-    alert('RECURSO EM DESENVOLVIMENTO');
+
+    // Criar tabela de ordem de execução
+    var ordemExecucaoContainer = document.getElementById("ordemExecucaoContainer");
+    ordemExecucaoContainer.innerHTML = ""; // Limpar conteúdo anterior
+    var table = document.createElement("table");
+    table.className = "table table-striped";
+    
+    var thead = document.createElement("thead");
+    var headerRow = document.createElement("tr");
+    var thTime = document.createElement("th");
+    thTime.innerText = "Tempo";
+    var thTask = document.createElement("th");
+    thTask.innerText = "Tarefa";
+    headerRow.appendChild(thTime);
+    headerRow.appendChild(thTask);
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    var tbodyExec = document.createElement("tbody");
+    ordem_exec.forEach(entry => {
+        var row = document.createElement("tr");
+        var cellTime = document.createElement("td");
+        cellTime.innerText = entry.time;
+        var cellTask = document.createElement("td");
+        cellTask.innerText = entry.task;
+        row.appendChild(cellTime);
+        row.appendChild(cellTask);
+        tbodyExec.appendChild(row);
+    });
+    table.appendChild(tbodyExec);
+
+    ordemExecucaoContainer.appendChild(table);
+
 }
