@@ -110,14 +110,21 @@ class Task {
         this.nextReleaseTime = 0;
         this.remainingComputationTime = computationTime;
         this.inheritedPriority = priority;
+        this.resourceCeiling = priority;
     }
 }
 
 // Função para simular a execução das tarefas
-function simulatePIP(tasks, totalTime) {
+function simulatePCP(tasks, totalTime) {
     let time = 0;
     let schedule = [];
-    let blockedTasks = [];
+    let resourceCeiling = {};
+
+    // Inicializa o teto de prioridade para cada recurso
+    tasks.forEach(task => {
+        resourceCeiling[task.name] = task.priority;
+    });
+
 
     while (time < totalTime) {
         // Atualiza as prioridades herdadas
@@ -125,11 +132,22 @@ function simulatePIP(tasks, totalTime) {
             task.inheritedPriority = task.priority;
         });
         
-        // Processa bloqueios
-        blockedTasks.forEach(blockedTask => {
-            const blockingTask = tasks.find(t => t.name === blockedTask);
-            if (blockingTask) {
-                blockingTask.inheritedPriority = Math.max(blockingTask.inheritedPriority, tasks.find(t => t.name === blockedTask).priority);
+        // Processa bloqueios e atualiza tetos de prioridade
+        tasks.forEach(task => {
+            if (task.remainingComputationTime > 0 && task.nextReleaseTime <= time) {
+                // Verifica se a tarefa pode acessar o recurso
+                let canAccess = true;
+                for (let resource in resourceCeiling) {
+                    if (task.priority <= resourceCeiling[resource] && resource !== task.name) {
+                        canAccess = false;
+                        break;
+                    }
+                }
+                if (canAccess) {
+                    resourceCeiling[task.name] = Math.max(resourceCeiling[task.name], task.priority);
+                } else {
+                    task.inheritedPriority = Math.max(task.inheritedPriority, resourceCeiling[task.name]);
+                }
             }
         });
 
@@ -163,7 +181,8 @@ function simulatePIP(tasks, totalTime) {
                 blockedTasks.push(currentTask.name);
             }
         } else {
-            schedule.push({ time, task: "Idle" });
+            // Se não houver tarefa para executar, adicionar "sem tarefa" ao escalonamento
+            schedule.push({ time, task: "Sem Tarefa" });
         }
 
         time++;
@@ -200,7 +219,7 @@ function calcularOrdemExec() {
 
 
     const totalTime = 20;
-    const ordem_exec = simulatePIP(tarefas, totalTime);
+    const ordem_exec = simulatePCP(tarefas, totalTime);
 
 
     // Criar tabela de ordem de execução
